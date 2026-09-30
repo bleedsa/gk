@@ -34,7 +34,7 @@ void ctlc(int n) { (void)n; STOP=1; }
 #endif
 
 static void usage(char *s) {
-  fprintf(stderr,"usage: %s [-q] [-i PORT] [-f PORT] [script]\n",s);
+  fprintf(stderr,"usage: %s [-q] [-i PORT] [-f PORT] [script] [-- [...]]\n",s);
   exit(1);
 }
 
@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
   K r=0;
   int i,quiet=0,iter_port=0,fork_port=0,nargs=0;
   char *a,*script=0,**args;
+  char fwdrm=0; /* forward remaining args to the script's .z.i */
 #ifdef _WIN32
   /* gk prints LF, never CRLF: put stdout/stderr in binary mode so the Windows
    * CRT doesn't translate '\n' -> '\r\n'.  gk's output is then byte-identical on
@@ -57,7 +58,9 @@ int main(int argc, char **argv) {
   if(!args) { fprintf(stderr,"gk: out of memory\n"); exit(1); }
   for(i=1;i<argc;++i) {
     a=argv[i];
-    if(a[0]=='-') {
+    /* arg forwarding path */
+    if (fwdrm) args[nargs++]=a;
+    else if(a[0]=='-') {
       if(!a[1]) usage(argv[0]);
       else if(!strcmp(a,"-q")) quiet=1;
       else if(!strcmp(a,"-i") || !strcmp(a,"-f")) {
@@ -73,6 +76,7 @@ int main(int argc, char **argv) {
         if(is_fork) { if(fork_port) usage(argv[0]); fork_port=(int)v; }
         else        { if(iter_port) usage(argv[0]); iter_port=(int)v; }
       }
+      else if (!strcmp(a,"--")) fwdrm=1;
       else usage(argv[0]);
     }
     else if(!script) script=a;  /* first non-flag token is the script */
